@@ -79,7 +79,7 @@ def delete_event_from_cal(service, event):
         desc = event['description']
         if desc == auto_desc:
             service.events().delete(calendarId='primary', eventId=event['id']).execute()
-            logging.warning('deleting event' + event['summary'])
+            logging.warning('deleting event : ' + event['summary'])
             return
     logging.warning('event cannot be deleted cause it was not automatically generated')
 
