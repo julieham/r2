@@ -151,7 +151,7 @@ def add_or_remove_in_calendar(cal_service, email_subject, class_variables, upcom
 
 
 def analyse_messages():
-    logging.info('STARTING ' + datetime.datetime.now().strftime('%Y %b %d %H:%M:%S'))
+    logging.info(datetime.datetime.now().strftime('%Y %b %d %H:%M:%S') + ' : STARTING MAIL_TO_EVENTS')
     credentials = get_credentials()
     gmail_service = build('gmail', 'v1', credentials=credentials)
     cal_service = build('calendar', 'v3', credentials=credentials)
@@ -188,7 +188,7 @@ def analyse_messages():
 
     with open('read_msgs.json', 'w') as f:
         f.write(json.dumps(list(read_msgs)))
-    logging.info('PROCESS FINISHED ' + datetime.datetime.now().strftime('%Y %b %d %H:%M:%S') + '\n' + '*' * 99)
+    logging.info(datetime.datetime.now().strftime('%Y %b %d %H:%M:%S') + ' : MAIL_TO_EVENTS FINISHED' + '\n' + '*' * 99)
 
 
 if __name__ == '__main__':
