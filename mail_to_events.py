@@ -22,7 +22,8 @@ time_min_events = (datetime.datetime.utcnow() - datetime.timedelta(days=30))
 auto_desc = "Automatically generated event by r2cal.py"
 subjects = {'R2 Training - Annulation du cours',
             'R2 Training - Réservation validée',
-            'R2 Training - Réservation Confirmée'}
+            'R2 Training - Réservation Confirmée',
+            "R2 Training - Inscription en liste d'attente"}
 
 
 def get_credentials():
@@ -105,9 +106,9 @@ def txt_to_class_variables(text):
     html_body = b64decode(data.replace("-", "+").replace("_", "/"))
     soup = BeautifulSoup(html_body, "lxml")
     class_info = soup.findAll('blockquote')[0].get_text()[:-1]
-    class_name, class_info = class_info.split(' avec ')
-    class_instructor, class_info = class_info.split(' à ')
-    class_datetime_str, class_location = class_info.split(" dans l'espace ")
+    class_name, class_info = class_info.split(' avec ') if 'avec' in class_info else class_info.split(' with ')
+    class_instructor, class_info = class_info.split(' à ')  if ' à ' in class_info else class_info.split(' on ')
+    class_datetime_str, class_location = class_info.split(" dans l'espace ") if "dans l'espace" in class_info else class_info.split(" at ")
     try:
         class_datetime_dt = datetime.datetime.strptime(class_datetime_str, '%d %B %Y %H:%M')
     except ValueError:
@@ -119,12 +120,25 @@ def add_or_remove_in_calendar(cal_service, email_subject, class_variables, upcom
     location, datetime_dt, datetime_str, instructor, name = class_variables
     if datetime_dt > time_min_events:
         class_as_event = class_to_event(name, instructor, location, datetime_dt)
+        waitlist_class_as_event = class_to_event('WAITLIST - ' + name, instructor, location, datetime_dt)
         matching_events = [e for e in upcoming_classes if event_is_class(e, class_as_event)]
+        matching_waitlist_events = [e for e in upcoming_classes if event_is_class(e, waitlist_class_as_event)]
         if 'Annulation' in email_subject:
             for e in matching_events:
                 delete_event_from_cal(cal_service, e)
                 logging.debug('deleting class')
-        else:  # class booked
+        elif 'attente' in email_subject:
+            if len(matching_waitlist_events) == 0:
+                logging.debug('adding WAITLIST class to calendar')
+                e = cal_service.events().insert(calendarId='primary', body=waitlist_class_as_event).execute()
+                upcoming_classes.append(e)
+            else:
+                logging.debug('WAITLIST class already in calendar')
+        else:  #  booking
+            if 'Confirmée' in email_subject:
+                for e in matching_waitlist_events:
+                    delete_event_from_cal(cal_service, e)
+                    logging.debug('deleting WAITLIST class')
             if len(matching_events) == 0:
                 logging.debug('adding class to calendar')
                 e = cal_service.events().insert(calendarId='primary', body=class_as_event).execute()

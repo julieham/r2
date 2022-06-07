@@ -9,10 +9,10 @@ to install all requirements with pip :
 `pip install -r requirements.txt`
 
 Add private files with scp :
-`scp -P XXXX FILE USEr@IP:/home/arlo/r2`
+`scp -P XXXX FILE USER@IP:/home/arlo/r2`
 
 if locale is not available :
-`sudo locale-gen ru_RU`
+`sudo locale-gen fr_FR.UTF-8`
 
 crontab command : 
 `*/10 7-23 * * * cd ~/r2 && sh run.sh`
