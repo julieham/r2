@@ -107,8 +107,9 @@ def txt_to_class_variables(text):
     soup = BeautifulSoup(html_body, "lxml")
     class_info = soup.findAll('blockquote')[0].get_text()[:-1]
     class_name, class_info = class_info.split(' avec ') if 'avec' in class_info else class_info.split(' with ')
-    class_instructor, class_info = class_info.split(' à ')  if ' à ' in class_info else class_info.split(' on ')
-    class_datetime_str, class_location = class_info.split(" dans l'espace ") if "dans l'espace" in class_info else class_info.split(" at ")
+    class_instructor, class_info = class_info.split(' à ') if ' à ' in class_info else class_info.split(' on ')
+    class_datetime_str, class_location = class_info.split(
+        " dans l'espace ") if "dans l'espace" in class_info else class_info.split(" at ")
     try:
         class_datetime_dt = datetime.datetime.strptime(class_datetime_str, '%d %B %Y %H:%M')
     except ValueError:
@@ -134,7 +135,7 @@ def add_or_remove_in_calendar(cal_service, email_subject, class_variables, upcom
                 upcoming_classes.append(e)
             else:
                 logging.debug('WAITLIST class already in calendar')
-        else:  #  booking
+        else:  # booking
             if 'Confirmée' in email_subject:
                 for e in matching_waitlist_events:
                     delete_event_from_cal(cal_service, e)
