@@ -1,3 +1,5 @@
 *.json
 dummy.py
-app.log
+nosync/*
+*.csv
+nosync/param.py

@@ -1,28 +1,22 @@
-import base64
 import datetime
 import locale
 import logging
 import urllib
 import pandas as pd
-from email.mime.text import MIMEText
 from itertools import product
 from bs4 import BeautifulSoup
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from tqdm import tqdm
 
-from mail_to_events import get_credentials
-from param import *
+from google_manager import GmailService
+from nosync.param import *
 
-logging.basicConfig(filename='app.log', filemode='a', level=logging.DEBUG)
-logging.getLogger('googleapiclient.discovery').setLevel(logging.WARNING)
-logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.WARNING)
+logging.basicConfig(filename='nosync/app.log', filemode='a', level=logging.DEBUG)
 pd.set_option('mode.chained_assignment', None)
 locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
 
 year_now = datetime.datetime.now().year
 sites_dico = {'3': 'Bastille', '2': "Pereire", "1": "Vendome"}
-classes_history = "all_classes.csv"
+classes_history = "nosync/all_classes.csv"
 
 
 def log_now():
@@ -78,12 +72,12 @@ def get_classes_id(df):
     return df[sorted(string_columns)].apply(lambda row: row.str.cat(), axis=1)
 
 
-def get_classes_local():
+def get_known_classes():
     return pd.read_csv(classes_history, parse_dates=[7], index_col=0, dtype=str)
 
 
 def get_new_classes():
-    known_classes = get_classes_local()
+    known_classes = get_known_classes()
     available_classes = get_weeks_of_classes(3)
 
     known_ids = get_classes_id(known_classes)
@@ -103,32 +97,25 @@ def class_df_to_html(df):
            "</style></head><body>" + html_classes + "</body></html>"
 
 
-def send_email(df):
-    logging.info('SENDING EMAIL')
-    message = MIMEText(class_df_to_html(df), 'html')
-    message['to'] = planning_sender
-    message['from'] = planning_recipient
-    message['subject'] = 'R2 Planning Update - Unexpected Hind Classes'
-    body = {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
-
-    gmail_service = build('gmail', 'v1', credentials=get_credentials())
-    try:
-        gmail_service.users().messages().send(userId='me', body=body).execute()
-    except HttpError:
-        logging.error('HTTP ERROR SENDING MESSAGE')
+def send_planning_update_email(classes, gmail_service=None):
+    df_as_html = class_df_to_html(classes)
+    if not gmail_service:
+        gmail_service = GmailService()
+    gmail_service.send_email(planning_sender, planning_recipient, planning_subject, df_as_html)
 
 
 def check_planning():
     logging.info(log_now() + ' : STARTING PLANNING_CHECK')
     unknown_classes = get_new_classes()
 
-    hind_classes = filter_classes_with_values(unknown_classes, dict({'Instructor': ['Hind M']}))
-    is_not_jeudi = hind_classes['Dow'] != 'Jeu'
-    is_not_night = (hind_classes['Time'].str.split(':').map(lambda x: x[0])).astype(int) < 17
-    unexpected_hind_classes = hind_classes[is_not_night & is_not_jeudi]
-    logging.info('FOUND ' + str(unexpected_hind_classes.shape[0]) + ' UNEXPECTED CLASSES')
-    if unexpected_hind_classes.shape[0]:
-        send_email(unexpected_hind_classes)
+    target_classes = filter_classes_with_values(unknown_classes, dict(target_filter))
+    target_avoid_filter_1 = target_classes[target_avoid_and_1[0]].isin(target_avoid_and_1[1]) == False
+    target_avoid_filter_2 = target_classes[target_avoid_and_2[0]].isin(target_avoid_and_2[1]) == False
+    unexpected_target_classes = target_classes[target_avoid_filter_1 & target_avoid_filter_2]
+
+    logging.info('FOUND ' + str(unexpected_target_classes.shape[0]) + ' UNEXPECTED CLASSES')
+    if unexpected_target_classes.shape[0]:
+        send_planning_update_email(unexpected_target_classes)
     logging.info(log_now() + ' : PLANNING_CHECK FINISHED ' + '\n' + '*' * 99)
 
 
