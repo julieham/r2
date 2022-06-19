@@ -101,7 +101,7 @@ def analyse_messages():
     ids_known_msgs = set(json.load(open('nosync/read_msgs.json', 'r')))
 
     msgs = gmail_service.fetch_labelled_messages(labelIds=['UNREAD', 'INBOX'])
-    msgs_ids = [msg['id'] for msg in msgs if msg['id'] not in ids_known_msgs]
+    msgs_ids = [msg['id'] for msg in msgs if msg['id'] not in ids_known_msgs][::-1]
     ids_known_msgs = ids_known_msgs | set(msgs_ids)
 
     upcoming_classes = cal_service.fetch_upcoming_events(time_min_events, authorized_desc=auto_desc)
