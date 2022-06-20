@@ -42,20 +42,20 @@ def get_weeks_of_classes(max_weeks):
             for c in classes:
                 instructor = c.find("span", {"class": "scheduleInstruc"}).string
                 try:
-                    class_type = c.find("span", {"class": "scheduleClass"}).string.replace('\n', '').replace('\t', '')
+                    name = c.find("span", {"class": "scheduleClass"}).string.replace('\n', '').replace('\t', '')
                     # class_length = c.find("span", {"class": "classlength"}).string
                     c.find('span', class_='classlength').decompose()
                 except AttributeError:
-                    class_type = c.find("span", {"class": "scheduleCancelled"}).string.replace('\n', '').replace('\t', '')
+                    name = c.find("span", {"class": "scheduleCancelled"}).string.replace('\n', '').replace('\t', '')
 
-                time = c.find("span", {"class": "scheduleTime"}).string.replace(' ', '').replace('min', ' min')
+                time = c.find("span", {"class": "scheduleTime"}).string.replace(' ', '').split('(')[0]
 
-                if class_type != 'Open Gym':
+                if name != 'Open Gym':
                     new_row = {'Dow': days[i],
                                'Date': dates[i],
                                'Time': time,
                                'Site': sites_dico[site_id],
-                               'Class': class_type,
+                               'Class': name,
                                'Instructor': instructor,
                                'Datetime': str(year_now) + '.' + dates[i] + ' ' + time}
                     df_classes = df_classes.append(new_row, ignore_index=True)
